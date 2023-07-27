@@ -1,4 +1,4 @@
-org 0x7c00
+org 0x0
 bits 16
 
 jmp main
@@ -31,21 +31,12 @@ print:
     ret ; return
 
 main:
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
-
-    mov ss, ax
-    mov sp, 0x7c00
-
     print(msg)
 
+.halt:
+    cli
     hlt
 
-.halt:
-    jmp .halt
 
-msg: db "Hello, World!", 0
 
-times 510-($-$$) db 0
-dw 0xaa55
+msg: db "Hello world from CryptOS Kernel!", 0

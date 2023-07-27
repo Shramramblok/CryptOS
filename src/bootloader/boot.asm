@@ -78,7 +78,7 @@ halt:
     cli
     hlt
 
-print:  ;CHECKED
+print:
     push si ; save si
     push ax ; save ax
     lodsb ; al = [si], si++
