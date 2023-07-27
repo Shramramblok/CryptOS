@@ -34,7 +34,7 @@ bdb_large_sectors: dd 0
 ; extended boot record
 bdb_drive_number: db 0
 bdb_reserved: db 0
-bdb_boot_signature: db 0x29
+bdb_boot_signature: db 0x29  ; / 0x28h
 bdb_volume_id: dd 0x69696969
 bdb_volume_label: db "CryptOS    "
 bdb_file_system_type: db "FAT12   "
@@ -53,8 +53,8 @@ main:
 
     ; read second sector of disk
     mov ax, 1 ; lba = 1
-    mov cl, 1 ; read 1 sector
-    mov bx, 0x7e00 ; buffer
+    mov cl, 1 ; read sector 1 (second sector, starts from 0)
+    mov bx, 0x7e00 ; buffer to read sector 1
     call disk_read ; disk_read(lba, sectors, drive, buffer)
 
     print$ msg
@@ -78,7 +78,7 @@ halt:
     cli
     hlt
 
-print:
+print:  ;CHECKED
     push si ; save si
     push ax ; save ax
     lodsb ; al = [si], si++
@@ -115,7 +115,7 @@ lba2chs:
     inc dx ; dx = lba % sectors_per_track + 1
     mov cx, dx ; cx = sector
     xor dx, dx ; dx = 0
-    div word [bdb_heads] ; ax = lba / sectors_per_track / heads, dx = lba % sectors_per_track % heads
+    div word [bdb_heads] ; ax = lba / sectors_per_track / heads, dx = (lba / sectors_per_track) % heads
     mov dh, dl ; dh = head
     mov ch, al ; cl = cylinder
     shl ah, 6 ; ah = cylinder >> 2
@@ -130,7 +130,7 @@ lba2chs:
 ; ax = lba
 ; cl = number of sectors to read
 ; dl = drive number
-; es:bx = buffer
+; es:bx = buffer for data read from the disk
 disk_read:
     push ax ; save ax
     push bx ; save bx
@@ -138,16 +138,16 @@ disk_read:
     push dx ; save dx
     push di ; save di
 
-    push cx ; save cx
+    push cx ; save cx (number of sectors to read)
     call lba2chs ; lba2chs(lba)
-    pop ax ; restore cx
+    pop ax ; restore cx (number of sectors to read)
 
     mov ah, 0x02 ; read sectors
     mov di, 3 ; retry 3 times
 
     .try_disk_read:
         pusha ; save all registers, because we don't know what int 13h (BIOS) will overwrite
-        stc ; set carry flag, to check if int 13h failed (some BIOSes don't set carry flag on error)
+        stc ; set carry flag, to check if int 13h failed (some BIOS implementations don't set carry flag on error)
         int 13h ; read sectors
         jnc .disk_read_ok ; no error, read successful
 
@@ -176,7 +176,7 @@ disk_read:
 reset_disk:
     pusha ; save all registers, because we don't know what int 13h (BIOS) will overwrite
     xor ah, ah ; reset disk
-    stc ; set carry flag, to check if int 13h failed (some BIOSes don't set carry flag on error)
+    stc ; set carry flag, to check if int 13h failed (some BIOS implementations don't set carry flag on error)
     int 13h ; reset disk
     jc reset_disk_error ; failed to reset disk, print error message and halt
     popa ; restore all registers
