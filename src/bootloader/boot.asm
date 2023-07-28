@@ -54,15 +54,29 @@ main:
     mov ss, ax
     mov sp, 0x7c00
 
-    mov [bdb_drive_number], dl ; save drive number
+    mov [drive_number], dl ; save drive number
 
-    ; read second sector of disk
-    mov ax, 1 ; lba = 1
-    mov cl, 1 ; read sector 1 (second sector, starts from 0)
-    mov bx, 0x7e00 ; buffer to read sector 1
+    ; read third sector of disk
+    mov ax, 2 ; third sector
+    mov cl, 1 ; read 1 sector 
+    mov bx, buffer ; buffer to read sector to
     call disk_read ; disk_read(lba, sectors, drive, buffer)
 
     print$ msg
+    mov cl, [buffer + 24]
+    inc cl
+    shl dword [shl_sectors_per_block], cl
+    printint$ [shl_sectors_per_block]
+
+    cmp [shl_sectors_per_block], 0
+    je second_block_group_descriptor_table
+        mov ax, 2 ; (third block)
+        jmp .read_group_descriptor_table
+    .second_block_group_descriptor_table:
+        mov ax, 1 ; (second block)
+    .read_group_descriptor_table:
+
+    mov word [block_group_descriptor_table], ax ; save block group descriptor table address
 
     jmp halt
 
@@ -220,13 +234,32 @@ reset_disk:
     popa ; restore all registers
     ret
 
+; ax = block number
+; es:bx = buffer for data read from the disk
+read_block:
+    push ax ; save ax
+    push cx ; save cx
+    push dx ; save dx
 
-    
+    shl word [shl_sectors_per_block] ; ax = ax * sectors_per_block
+    mov cx, [sectors_per_block] ; cx = sectors_per_block
+    mov dl, [drive_number] ; dl = drive_number
 
+    call disk_read
 
+    pop dx ; restore dx
+    pop cx ; restore cx
+    pop ax ; restore ax
+
+    ret
+
+; data
 msg: db "Hello, World!", ENDL, 0
 read_disk_error_msg: db "Failed to read disk!", ENDL, 0
 reset_disk_error_msg: db "Failed to reset disk!", ENDL, 0
-
+drive_number: db 0 ; will be filled in at run time
+shl_sectors_per_block: dw 0 ; will be filled in at run time
+block_group_descriptor_table: dw 0 ; will be filled in at run time
 times 510-($-$$) db 0
 dw 0xaa55
+buffer: ; buffer for disk_read
