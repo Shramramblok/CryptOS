@@ -8,6 +8,11 @@ bits 16
     call print ; print(str)
 %endmacro
 
+%macro printint$ 1
+    mov ax, %1 ; ax = int
+    call printint ; printint(int)
+%endmacro
+
 %macro lba2chs$ 1
     mov ax, %1 ; ax = lba
     call lba2chs ; lba2chs(lba)
@@ -78,9 +83,11 @@ halt:
     cli
     hlt
 
+; si = pointer to string
 print:
     push si ; save si
     push ax ; save ax
+    .print_loop:
     lodsb ; al = [si], si++
     or al, al ; al == 0?
     jz .done_print ; yes, done
@@ -89,11 +96,42 @@ print:
     mov ah, 0x0e ; tty mode
     int 0x10 ; print al
 
-    jmp print ; no, print next char
+    jmp .print_loop ; no, print next char
     .done_print:
         pop ax ; restore ax
         pop si ; restore si
     ret ; return
+
+; ax = int
+printint:
+    push ax ; save ax
+    push bx ; save bx
+    push cx ; save cx
+    push dx ; save dx
+
+    mov bx, 10 ; bx = 10
+    xor cx, cx ; cx = 0
+    .loop:
+        xor dx, dx ; dx = 0
+        div bx ; ax = ax / bx, dx = ax % bx
+        push dx ; push dx to stack
+        inc cx ; cx++
+        test ax, ax ; ax == 0?
+        jnz .loop ; no, loop
+
+    .print:
+        pop ax ; pop dx from stack
+        xor bh, bh ; page 0
+        add al, '0' ; al += '0'
+        mov ah, 0x0e ; tty mode
+        int 0x10 ; print al
+        loop .print ; cx != 0, loop
+
+    pop dx ; restore dx
+    pop cx ; restore cx
+    pop bx ; restore bx
+    pop ax ; restore ax
+    ret
 
 ; convert chs to lba
 ; chs: cylinder (starts from 0), head (starts from 0), sector (starts from 1)
