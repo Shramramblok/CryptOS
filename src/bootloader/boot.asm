@@ -3,46 +3,41 @@ bits 16
 
 %define ENDL 0x0D, 0x0A
 
+%define LOG2_OF_BLOCK_GROUP_DESCRIPTOR_SIZE 5 ; 2^5 = 32 block group descriptors size
+
 %macro print$ 1
+    push si ; save si
+    push cx ; save cx
+    xor cx, cx ; cx = 0
     mov si, %1 ; si = str
     call print ; print(str)
+    pop cx ; restore cx
+    pop si ; restore si
+%endmacro
+
+%macro printsize$ 2
+    push si ; save si
+    push cx ; save cx
+    mov cx, %2 ; cx = length
+    mov si, %1 ; si = str
+    call print ; print(str)
+    pop cx ; restore cx
+    pop si ; restore si
 %endmacro
 
 %macro printint$ 1
+    push ax ; save ax
     mov ax, %1 ; ax = int
     call printint ; printint(int)
+    pop ax ; restore ax
 %endmacro
 
 %macro lba2chs$ 1
+    push ax ; save ax
     mov ax, %1 ; ax = lba
     call lba2chs ; lba2chs(lba)
+    pop ax ; restore ax
 %endmacro
-
-; FAT12 header
-jmp short main
-nop
-
-bdb_oem: db "MSWIN4.1"
-bdb_bytes_per_sector: dw 512
-bdb_sectors_per_cluster: db 1
-bdb_reserved_sectors: dw 1
-bdb_fat_count: db 2
-bdb_dir_entries_count: dw 0xE0
-bdb_total_sectors: dw 2880
-bdb_media_descriptor_type: db 0xF0
-bdb_sectors_per_fat: dw 9
-bdb_sectors_per_track: dw 18
-bdb_heads: dw 2
-bdb_hidden_sectors: dd 0
-bdb_large_sectors: dd 0
-
-; extended boot record
-bdb_drive_number: db 0
-bdb_reserved: db 0
-bdb_boot_signature: db 0x29  ; / 0x28h
-bdb_volume_id: dd 0x69696969
-bdb_volume_label: db "CryptOS    "
-bdb_file_system_type: db "FAT12   "
 
 main:
     ; setup data segments
@@ -62,30 +57,70 @@ main:
     mov bx, buffer ; buffer to read sector to
     call disk_read ; disk_read(lba, sectors, drive, buffer)
 
-    print$ msg
     mov cl, [buffer + 24]
+    shl word [block_size], cl ; calculate block size
     inc cl
-    shl dword [shl_sectors_per_block], cl
-    printint$ [shl_sectors_per_block]
+    mov byte [shl_sectors_per_block], cl
 
-    cmp [shl_sectors_per_block], 0
-    je second_block_group_descriptor_table
-        mov ax, 2 ; (third block)
+    mov cx, [buffer + 40]
+    mov [inodes_per_group], cx
+
+    mov cx, [buffer + 32]
+    mov [blocks_per_group], cx
+
+    mov cx, [buffer + 76]
+    mov [major_version], cx
+
+    cmp byte [major_version], 0
+    je .version0
+        mov ax, word [buffer + 88]
+        mov [inode_size], ax
+        jmp .finish_version_check
+    .version0:
+        mov word [inode_size], 128
+    .finish_version_check:
+    
+    cmp byte [shl_sectors_per_block], 0
+    je .second_block_group_descriptor_table
+        mov ax, 1 ; (second block)
         jmp .read_group_descriptor_table
     .second_block_group_descriptor_table:
-        mov ax, 1 ; (second block)
+        mov ax, 2 ; (third block)
     .read_group_descriptor_table:
 
     mov word [block_group_descriptor_table], ax ; save block group descriptor table address
+    mov bx, buffer ; buffer to read block to
+    call read_block ; read_block(block_number, buffer)
 
-    jmp halt
+    mov ax, 2
+    call set_inode_first_data_in_buffer ; set_inode_first_data_in_buffer(inode_number)
+
+    xor bx, bx ; bx = 0
+    xor cx, cx ; cx = 0
+    .read_root_dir:
+        mov di, stage2_file_name ; si = stage2_file_name
+        mov cl, [bx + buffer + 6]
+        mov si, bx ; si = directory entry
+        add si, buffer ; si = directory entry + buffer
+        add si, 8 ; si = directory entry + buffer + 8
+        repe cmpsb ; compare [si], [di], si++, di++, cx--
+        je .found_stage2_file ; found stage2 file
+        add bx, [bx + buffer + 4] ; bx += directory entry size
+        cmp word [bx + buffer + 4], 0 ; directory entry size == 0?
+        jnz .read_root_dir ; directory entery size != 0, read next directory entry
+        jmp halt
+    .found_stage2_file:
+        mov ax, [bx + buffer] ; ax = directory entry->inode
+        call set_inode_first_data_in_buffer ; set_inode_first_data_in_buffer(inode_number)
+        ;printint$ [buffer]
+
 
 read_disk_error:
     print$ read_disk_error_msg
     jmp wait_for_key_and_reboot
 
 reset_disk_error:
-    print$ reset_disk_error_msg
+    ;print$ reset_disk_error_msg
     jmp wait_for_key_and_reboot
 
 wait_for_key_and_reboot:
@@ -98,10 +133,13 @@ halt:
     hlt
 
 ; si = pointer to string
+; cx = length of string (if 0, string is null terminated)
 print:
     push si ; save si
     push ax ; save ax
+    push cx ; save cx
     .print_loop:
+    dec cx ; cx--
     lodsb ; al = [si], si++
     or al, al ; al == 0?
     jz .done_print ; yes, done
@@ -110,8 +148,10 @@ print:
     mov ah, 0x0e ; tty mode
     int 0x10 ; print al
 
-    jmp .print_loop ; no, print next char
+    or cx, cx ; cx == 0?
+    jnz .print_loop ; no, print next char
     .done_print:
+        pop cx ; restore cx
         pop ax ; restore ax
         pop si ; restore si
     ret ; return
@@ -141,6 +181,10 @@ printint:
         int 0x10 ; print al
         loop .print ; cx != 0, loop
 
+        mov al, ' ' ; al += '0'
+        mov ah, 0x0e ; tty mode
+        int 0x10 ; print al
+
     pop dx ; restore dx
     pop cx ; restore cx
     pop bx ; restore bx
@@ -153,9 +197,9 @@ printint:
 ; ax = lba, cx = cylinder, dh = head, cl = sector
 
 ;def lba2chs(lba):
-;    lba, sector = divmod(lba, bdb_sectors_per_track)
+;    lba, sector = divmod(lba, sectors_per_track)
 ;    sector += 1
-;    lba, head = divmod(lba, bdb_heads)
+;    lba, head = divmod(lba, heads)
 ;    return lba, head, sector
 
 lba2chs:
@@ -163,11 +207,11 @@ lba2chs:
     push dx ; save dx
 
     xor dx, dx ; dx = 0
-    div word [bdb_sectors_per_track] ; ax = lba / sectors_per_track, dx = lba % sectors_per_track
+    div word [sectors_per_track] ; ax = lba / sectors_per_track, dx = lba % sectors_per_track
     inc dx ; dx = lba % sectors_per_track + 1
     mov cx, dx ; cx = sector
     xor dx, dx ; dx = 0
-    div word [bdb_heads] ; ax = lba / sectors_per_track / heads, dx = (lba / sectors_per_track) % heads
+    div dword [heads] ; ax = lba / sectors_per_track / heads, dx = (lba / sectors_per_track) % heads
     mov dh, dl ; dh = head
     mov ch, al ; cl = cylinder
     shl ah, 6 ; ah = cylinder >> 2
@@ -241,8 +285,11 @@ read_block:
     push cx ; save cx
     push dx ; save dx
 
-    shl word [shl_sectors_per_block] ; ax = ax * sectors_per_block
-    mov cx, [sectors_per_block] ; cx = sectors_per_block
+    mov cl, [shl_sectors_per_block]
+    shl ax, cl ; ax = ax * sectors_per_block
+    mov dx, 1
+    shl dx, cl ; dx = sectors_per_block
+    mov cx, dx ; cx = sectors_per_block
     mov dl, [drive_number] ; dl = drive_number
 
     call disk_read
@@ -253,13 +300,56 @@ read_block:
 
     ret
 
+
+; ax = inode number
+set_inode_first_data_in_buffer:
+    push ax ; save ax
+    push bx ; save bx
+    push cx ; save cx
+    push dx ; save dx
+
+    dec ax ; ax--
+    div word [inodes_per_group] ; ax = ax / inodes_per_group, dx = ax % inodes_per_group
+    
+    mov bx, ax ; bx = block group
+    shl bx, LOG2_OF_BLOCK_GROUP_DESCRIPTOR_SIZE ; bx = bx * 32
+    mov cx, [bx + buffer + 8] ; ax = start block of inode table
+
+    mov ax, dx ; ax = index
+    mul word [inode_size] ; ax = ax * inode_size
+    mov si, ax ; si = ax * inode_size
+    div word [block_size] ; ax = ax / block_size = containing block
+    add ax, cx ; ax = containing block + start block of inode table
+    printint$ ax
+    mov bx, buffer ; buffer to read block to
+    call read_block ; read_block(block_number, buffer)
+    
+    mov ax, [buffer + si + 40] ; ax = root inode->driect pointer 0 (contents of root directory)
+    mov bx, buffer ; buffer to read block to
+    call read_block ; read_block(block_number, buffer)
+
+    pop dx ; restore dx
+    pop cx ; restore cx
+    pop bx ; restore bx
+    pop ax ; restore ax
+
+    ret
+
 ; data
 msg: db "Hello, World!", ENDL, 0
 read_disk_error_msg: db "Failed to read disk!", ENDL, 0
 reset_disk_error_msg: db "Failed to reset disk!", ENDL, 0
+sectors_per_track: dw 18
 drive_number: db 0 ; will be filled in at run time
-shl_sectors_per_block: dw 0 ; will be filled in at run time
+heads: dw 2
+shl_sectors_per_block: db 0 ; will be filled in at run time
+block_size: dw 0x400 ; 1024 bytes (will be filled in at run time)
+blocks_per_group: dw 0 ; will be filled in at run time
+inodes_per_group: dw 0 ; will be filled in at run time
+major_version: db 0 ; will be filled in at run time
+inode_size: dw 0 ; will be filled in at run time
 block_group_descriptor_table: dw 0 ; will be filled in at run time
+stage2_file_name: db "stage2.bin"
 times 510-($-$$) db 0
 dw 0xaa55
 buffer: ; buffer for disk_read
