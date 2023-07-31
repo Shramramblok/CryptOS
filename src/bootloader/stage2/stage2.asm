@@ -43,4 +43,4 @@ print:
 
 
 
-msg: db "gg", 0
+msg: db "Running Stage 2 of CryptOS!", 0
