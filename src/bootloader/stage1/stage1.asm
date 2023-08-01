@@ -5,6 +5,9 @@ bits 16
 
 %define LOG2_OF_BLOCK_GROUP_DESCRIPTOR_SIZE 5 ; 2^5 = 32 block group descriptors size
 
+%define STAGE2_SEGMENT 0x7e0
+%define STAGE2_OFFSET 0x0000
+
 main:
     ; setup data segments
     xor ax, ax
@@ -82,7 +85,11 @@ main:
         mov ax, [buffer + si + 40]
         call read_block ; read_block(block_number, buffer)
 
-        jmp bx
+        mov ax, STAGE2_SEGMENT
+        mov ds, ax
+        mov es, ax
+
+        jmp STAGE2_SEGMENT:STAGE2_OFFSET ; here the stage2 starts
 
 
 read_disk_error:
