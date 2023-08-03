@@ -8,36 +8,15 @@ bits 16
     call print ; print(str)
 %endmacro
 
+%macro printint$ 1
+    mov ax, %1 ; ax = int
+    call printint ; printint(int)
+%endmacro
+
 %macro lba2chs$ 1
     mov ax, %1 ; ax = lba
     call lba2chs ; lba2chs(lba)
 %endmacro
-
-; FAT12 header
-jmp short main
-nop
-
-bdb_oem: db "MSWIN4.1"
-bdb_bytes_per_sector: dw 512
-bdb_sectors_per_cluster: db 1
-bdb_reserved_sectors: dw 1
-bdb_fat_count: db 2
-bdb_dir_entries_count: dw 0xE0
-bdb_total_sectors: dw 2880
-bdb_media_descriptor_type: db 0xF0
-bdb_sectors_per_fat: dw 9
-bdb_sectors_per_track: dw 18
-bdb_heads: dw 2
-bdb_hidden_sectors: dd 0
-bdb_large_sectors: dd 0
-
-; extended boot record
-bdb_drive_number: db 0
-bdb_reserved: db 0
-bdb_boot_signature: db 0x29  ; / 0x28h
-bdb_volume_id: dd 0x69696969
-bdb_volume_label: db "CryptOS    "
-bdb_file_system_type: db "FAT12   "
 
 main:
     ; setup data segments
@@ -49,16 +28,29 @@ main:
     mov ss, ax
     mov sp, 0x7c00
 
-    mov [bdb_drive_number], dl ; save drive number
+    mov [drive_number], dl ; save drive number
 
-    ; read second sector of disk
-    mov ax, 1 ; lba = 1
-    mov cl, 1 ; read sector 1 (second sector, starts from 0)
-    mov bx, 0x7e00 ; buffer to read sector 1
+    ; read third sector of disk
+    mov ax, 2 ; third sector
+    mov cl, 1 ; read 1 sector 
+    mov bx, buffer ; buffer to read sector into
     call disk_read ; disk_read(lba, sectors, drive, buffer)
 
     print$ msg
+     mov cl, [buffer + 24]
+    inc cl
+    shl dword [shl_sectors_per_block], cl
+    printint$ [shl_sectors_per_block]
 
+    cmp [shl_sectors_per_block], 0
+    je second_block_group_descriptor_table
+        mov ax, 2 ; (third block)
+        jmp .read_group_descriptor_table
+    .second_block_group_descriptor_table:
+        mov ax, 1 ; (second block)
+    .read_group_descriptor_table:
+        mov word [block_group_descriptor_table], ax ; save block group descriptor table address
+    
     jmp halt
 
 read_disk_error:
@@ -78,9 +70,11 @@ halt:
     cli
     hlt
 
+; si = pointer to string to print
 print:
     push si ; save si
     push ax ; save ax
+    .print_loop:
     lodsb ; al = [si], si++
     or al, al ; al == 0?
     jz .done_print ; yes, done
@@ -89,11 +83,42 @@ print:
     mov ah, 0x0e ; tty mode
     int 0x10 ; print al
 
-    jmp print ; no, print next char
+    jmp .print_loop ; no, print next char
     .done_print:
         pop ax ; restore ax
         pop si ; restore si
     ret ; return
+
+; ax = integer number to print
+printint:
+    push ax ; save ax
+    push bx ; save bx
+    push cx ; save cx
+    push dx ; save dx
+
+    mov bx, 10 ; bx = 10
+    xor cx, cx ; cx = 0
+    .loop:
+        xor dx, dx ; dx = 0
+        div bx ; ax = ax / bx, dx = ax % bx
+        push dx ; push dx to stack
+        inc cx ; cx++
+        test ax, ax ; ax == 0?
+        jnz .loop ; no, loop
+
+    .print:
+        pop ax ; pop dx from stack
+        xor bh, bh ; page 0
+        add al, '0' ; al += '0'
+        mov ah, 0x0e ; tty mode
+        int 0x10 ; print al
+        loop .print ; cx != 0, loop
+
+    pop dx ; restore dx
+    pop cx ; restore cx
+    pop bx ; restore bx
+    pop ax ; restore ax
+    ret
 
 ; convert chs to lba
 ; chs: cylinder (starts from 0), head (starts from 0), sector (starts from 1)
@@ -182,13 +207,34 @@ reset_disk:
     popa ; restore all registers
     ret
 
+; ax = block number
+; es:bx = buffer for data read from the disk
+read_block:
+    push ax ; save ax
+    push cx ; save cx
+    push dx ; save dx
 
     
+    shl word [shl_sectors_per_block] ; ax = ax * sectors_per_block
+    mov cx, [sectors_per_block] ; cx = sectors_per_block
+    mov dl, [drive_number] ; dl = drive_number
 
+    call disk_read
+
+    pop dx ; restore dx
+    pop cx ; restore cx
+    pop ax ; restore ax
+
+    ret
+
+; data
 
 msg: db "Hello, World!", ENDL, 0
 read_disk_error_msg: db "Failed to read disk!", ENDL, 0
 reset_disk_error_msg: db "Failed to reset disk!", ENDL, 0
-
+drive_number: db 0 ; will be filled in at run time
+shl_sectors_per_block: dw 0 ; will be filled in at run time
+block_group_descriptor_table: dw 0 ; will be filled in at run time
 times 510-($-$$) db 0
 dw 0xaa55
+buffer: ; buffer for disk_read

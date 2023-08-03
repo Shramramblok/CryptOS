@@ -1,4 +1,4 @@
-org 0x7e00
+org 0x0000
 bits 16
 
 %define ENDL 0x0D, 0x0A
@@ -43,4 +43,4 @@ print:
 
 
 
-msg: db "gg", 0
+msg: db "Running Stage 2 of CryptOS!", 0
