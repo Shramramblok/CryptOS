@@ -1,3 +1,4 @@
 /build/
 /debug/
 /.vscode/
+/src/bootloader/stage2/*.err
