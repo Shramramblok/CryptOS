@@ -38,3 +38,4 @@ always:
 
 clean:
 	rm -rf $(BUILD_DIR)/stage2.bin
+	rm -rf $(BUILD_DIR)/stage2.map
