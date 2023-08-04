@@ -2,7 +2,7 @@ bits 16
 
 section _ENTRY class=CODE
 
-extern _main
+extern _cstart_
 global entry
 
 entry:
@@ -15,7 +15,7 @@ entry:
 
     xor dh, dh
     push dx ; dl has the drive number
-    call _main
+    call _cstart_
 
     cli
     hlt
