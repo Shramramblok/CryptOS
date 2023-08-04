@@ -3,13 +3,13 @@
 FORMAT RAW BIN 
 OPTION QUIET,
        NODEFAULTLIBS, # same as in stage2 MakeFile C compiling flags
-       START=entry # entry point in the binary file is the entry label
-       VERBOSE
-       OFFSET=0 # same as org 0x0
+       START=entry, # entry point in the binary file is the entry label
+       VERBOSE,
+       OFFSET=0, # same as org 0x0
        STACK=0X200
 
-ORDER: # specify the order of the important sections
+ORDER # specify the order of the important sections
     CLNAME CODE
-        SEGMET _ENTRY
+        SEGMENT _ENTRY
         SEGMENT _TEXT
     CLNAME DATA  
