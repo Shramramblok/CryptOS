@@ -48,7 +48,7 @@ void puti(int64_t value, uint32_t base)
 void _cdecl printf(const char* fmt, ...){
     int* argp = (int*)&fmt;  // stack is aligned to the int datatype
     int incsize = sizeof(fmt) / sizeof(int);
-    argp ++;  // points to the second argument
+    argp += incsize;  // points to the second argument
     int curst = PRINTF_NORMAL;
     int curln = PRINTFLN_DEFAULT;
     int numbase = 10;  // starts of as decimal
