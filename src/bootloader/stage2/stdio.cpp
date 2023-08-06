@@ -77,7 +77,7 @@ void putn_printf(int* &argp, uint8_t size, bool sign, uint32_t base, int incsize
 
 void _cdecl printf(const char* fmt, ...){
     int* argp = (int*)&fmt;  // stack is aligned to the int datatype
-    int incsize = sizeof(fmt) / sizeof(int);
+    int incsize = sizeof(int64_t) / sizeof(fmt);
     argp += incsize;  // points to the second argument
     uint8_t size = sizeof(int);
 
@@ -145,11 +145,7 @@ void _cdecl printf(const char* fmt, ...){
                 break;
             default:
                 break;
-            }
-        } else {
-            putc(*fmt);
         }
-        size = sizeof(int);
         fmt += incsize; // move to the next character in the format string
     }
 }

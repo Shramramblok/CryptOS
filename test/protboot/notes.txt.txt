@@ -1,0 +1,14 @@
+1. execute DOSBOX with this config:
+
+# boot up protected mode test OS:
+mount d: d:\
+
+d:
+cd D:\CryptOS\test\protboot\build
+cls
+BOOT test.img
+
+2. to launch both make and debugging at the same time execute:
+make && debug  # while being in CryptOS\test\protboot
+
+3. THIS IS ONLY THE SKELETON BOOTLOADER FOR PROTECTED MODE, NEEDS TO BE APPLIED TO ACTUAL BOOTLOADER
