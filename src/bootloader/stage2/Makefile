@@ -3,7 +3,7 @@ ASM?=nasm
 CC16?=/usr/bin/watcom/binl64/wpp # path to the compiler
 LD16?=/usr/bin/watcom/binl64/wlink # path to the linker
 
-CPPFLAGS16?=-4 -d3 -s -wx -ms -zl -zq
+CPPFLAGS16?=-4 -d2t -s -wx -ms -zl -zq
 # meaning of each .cpp flag:
 # -4: make the final file be compatible with 486 machine code (minimum for watcom compiler to work correctly)
 # -d3: full symbolic debugging, use as much symbols to debug as possible (useful for debugging)
