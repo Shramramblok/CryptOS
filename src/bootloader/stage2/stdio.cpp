@@ -47,13 +47,13 @@ void puti(int64_t value, uint32_t base)
 
 void _cdecl printf(const char* fmt, ...){
     int* argp = (int*)&fmt;  // stack is aligned to the int datatype
-    int incsize = sizeof(fmt) / sizeof(int);
+    int incsize = sizeof(int64_t) / sizeof(fmt);
     argp += incsize;  // points to the second argument
     int curst = PRINTF_NORMAL;
     int curln = PRINTFLN_DEFAULT;
     int numbase = 10;  // starts of as decimal
     int sign = false;  // starts of as unsigned
-
+    putu(incsize, 10);
     while (*fmt){
         switch (curst){
             case PRINTF_NORMAL: 
@@ -110,33 +110,25 @@ void _cdecl printf(const char* fmt, ...){
                               break;
 
                     case '%': putc('%');  // specifier "%" = specifies a '%' character
-                              //argp += incsize; -> specifier "%" does not get an argument
+                              //argp += multiplier; -> specifier "%" does not get an argument
                               break;
 
                     case 'd': 
-                    case 'i': numbase = 10;  // specifiers "i/d" = specifies a signed decimal 
-                              sign = true;
-                              puti(*argp, numbase);
+                    case 'i': puti(*argp, 10);  // specifiers "i/d" = specifies a signed decimal 
                               argp += incsize;
                               break;
 
-                    case 'u': numbase = 10;  // specifier "u" = specifies an unsigned decimal 
-                              sign = false;
-                              putu(*argp, numbase);  
+                    case 'u': putu(*argp, 10);  // specifier "u" = specifies an unsigned decimal   
                               argp += incsize;
                               break;
                     
                     case 'x':
                     case 'X':
-                    case 'p': numbase = 16;  // specifiers "x/X/p" = specifies an unsigned hexadecimal 
-                              sign = false;
-                              putu(*argp, numbase);
+                    case 'p': putu(*argp, 16);  // specifiers "x/X/p" = specifies an unsigned hexadecimal 
                               argp += incsize;
                               break;
 
-                    case 'o': numbase = 8;  // specifier "o" = specifies an unsigned octal 
-                              sign = false;
-                              putu(*argp, numbase);
+                    case 'o': putu(*argp, 8);  // specifier "o" = specifies an unsigned octal 
                               argp += incsize;
                               break;
                     
@@ -144,10 +136,8 @@ void _cdecl printf(const char* fmt, ...){
                 }   
                 curst = PRINTF_NORMAL;
                 curln = PRINTFLN_DEFAULT;  
-                numbase = 10;
-                sign = false;
                 break;
         }
-        fmt += incsize; // move to the next character in the format string
+        fmt += 1; // move to the next character in the format string
     }
 }
