@@ -1,6 +1,6 @@
 #include "stdint.h"
 #include "stdio.h"
-#include "main.h"
+#include "main.hpp"
 
 void _cdecl cstart_(uint16_t bootDriveNumber)
 {
