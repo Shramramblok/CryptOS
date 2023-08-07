@@ -32,34 +32,50 @@ entry:
     mov cr0, eax
 
     ; far jump into the 32-bit code segment to perform the switch (step 4)
-    ;jmp PRCODE_SEG:protected_begin
-    ; CAUSES ERROR: JMP descriptor illegal type 2
+    jmp dword PRCODE_SEG:.protected_begin
 
-protected_begin:
+.protected_begin:
     [bits 32]
     
     ; Paging is not enabled (step 6) ,LDT is not used (step 7), Tasking is not used (step 8)
     
     ; setup segment register by the GDT (step 9), note: ES, FS, GS will stay 0 from entry label
-    mov ax, 0x10 ; 32-bit DATA_SEG is the third in the GDT - offset 16
+    mov ax, PRDATA_SEG ; 32-bit DATA_SEG is the third in the GDT - offset 16
     mov ds, ax
-    ;mov ss, ax ; CAUSES PROBLEM - DOSBOX CANT BOOT UP (illegal descriptor type 10 to int D)
+    mov ss, ax
     
     ; steps 10, 11 are about interrupt descriptor tables (future video)
 
     ; test protected mode by printing text to the screen (0xb8000 is mapped straight to display, OPHINT):
     mov esi, prot_msg
     mov edi, 0xb8000
-    call protected_print
+    push ax
+    push bx
+    cld
+    mov bl, 1
+
+    .protpr_loop:
+        lodsb ; mov al <- [byte ptr si], esi++
+        or al, al
+        jz .protpr_done  
+        mov [edi], al
+        inc edi
+        mov [edi], byte bl ; color
+        inc edi
+        inc bl
+        jmp .protpr_loop
+
+    .protpr_done:
+    pop bx
+    pop ax
 
 ; Protected mode -> Real mode, steps are mentioned by the order of the intel manual chapter 9.9.2
     ; step 1 (disable interrupts) is already done and step 2 (disable Paging) is not relevant
 
     ; far jump into the 16-bit code segment (step 3)
-    ;jmp RLCODE_SEG:protected_16bit
-    ; CAUSES ERROR: JMP descriptor illegal type 0
+    jmp dword RLCODE_SEG:.protected_16bit
     
-protected_16bit: ; technically, here its still (16-bit) protected mode
+.protected_16bit: ; technically, here its still (16-bit) protected mode
     [bits 16]
 
     ; step 4 is not relevant (no need to use data/code in protected -> real)
@@ -72,9 +88,9 @@ protected_16bit: ; technically, here its still (16-bit) protected mode
     mov cr0, eax
 
     ; far jump to start real mode 16-bit code execution (step 7)
-    jmp 0x0:protected_end
+    jmp dword 0x0:.protected_end
 
-protected_end:
+.protected_end:
 
     ; setup segments (step 8)
     xor ax, ax
@@ -150,26 +166,6 @@ load_GDT: ; load the GDT into the GDT register
     ret
 
 
-; esi = address of message to print, edi = address of display byte to print to (starts from 0xb8000)
-protected_print: ; print a message to the screen (0xb8000 is mapped straight into display so no BIOS)
-    cld
-    mov bl, 1
-
-    .protpr_loop:
-        lodsb ; mov al <- [byte ptr si], esi++
-        or al, al
-        jz .protpr_done  
-        mov [edi], al
-        inc edi
-        mov [edi], bl ; color
-        inc edi
-        inc bl
-        jmp .protpr_loop
-
-    .protpr_done:
-    ret
-
-
 ; si = address of message to print
 real_print: ; print a message to the screen
     .realpr_loop:
@@ -195,32 +191,32 @@ GDT_begin: ; minimal descriptors, each is 8 bytes
         dw 0xffff
         dw 0
         db 0
-        db 10011010
-        db 11001111
+        db 10011010b
+        db 11001111b
         db 0
 
     data_protected: ; 32-bit data segment (used when passing from real to protected)
         dw 0xffff
         dw 0
         db 0
-        db 10010010
-        db 11001111
+        db 10010010b
+        db 11001111b
         db 0
 
     code_real: ; 16-bit code segment (used when passing from protected to real)
         dw 0xffff
         dw 0
         db 0
-        db 10011010
-        db 00001111
+        db 10011010b
+        db 00001111b
         db 0
 
     data_real: ; 16-bit data segment (used when passing from protected to real)
         dw 0xffff
         dw 0
         db 0
-        db 10010010
-        db 00001111
+        db 10010010b
+        db 00001111b
         db 0
 GDT_end:  ; the GDT ends here, not really important
     GDT_descriptor:
