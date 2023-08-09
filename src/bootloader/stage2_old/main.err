@@ -1,0 +1,2 @@
+main.cpp(18): Warning! W726: col(1) no reference to formal parameter 'bootDriveNumber'
+main.cpp(5): Note! N392: col(30) definition: 'unsigned short bootDriveNumber' in 'void __cdecl cstart_( unsigned short )'

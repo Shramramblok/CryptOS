@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include "stdint.h"
 
 // state constants:
 #define PRINTF_NORMAL 0
@@ -19,4 +19,4 @@ void putc(char c);
 void puts(const char* str);
 void putu(uint64_t value, uint32_t base);
 void puti(int64_t value, uint32_t base);
-void printf(const char* fmt, ...);
+void _cdecl printf(const char* fmt, ...);

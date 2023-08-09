@@ -1,48 +1,9 @@
 #include "stdio.h"
 #include "x86.hpp"
-#include <stdarg.h>
-#include <stdbool.h>
 
-const unsigned SCREEN_WIDTH = 80;  // standard width
-const unsigned SCREEN_HEIGHT = 25;  // standard height
-uint8_t* g_ScreenBuffer = (uint8_t*)0xB8000;  // protected mode - no BIOS ints
-int g_ScreenX = 0, g_ScreenY = 0;
-
-void putchr(int x, int y, char c){
-    g_ScreenBuffer[2 * (y * SCREEN_WIDTH + x)];  // every second byte is printed -> *2
-}
-
-void putclr(int x, int y, uint8_t color){
-    g_ScreenBuffer[2 * (g_ScreenY * SCREEN_WIDTH + g_ScreenX) + 1];  // every second byte is printed -> *2
-}
-
-void putc(char c){
-    switch (c){
-        case '\n':
-            g_ScreenX = 0;
-            g_ScreenY++;
-            break;
-
-        case '\r':
-            g_ScreenX = 0;
-            break;
-
-        case '\t':
-            for (int i = 0; i < 4 - (g_ScreenX % 4); i++){
-                putc(' ');
-            }
-            break;
-
-        default:
-            putchr(g_ScreenX, g_ScreenY, c);
-            g_ScreenX++; 
-            break;
-    }
-    
-    if (g_ScreenX >= SCREEN_WIDTH){
-        g_ScreenY++;
-        g_ScreenX = 0;
-    }
+void putc(char c)
+{
+    x86_WriteChar(c, 0);
 }
 
 void puts(const char* str)
@@ -114,7 +75,7 @@ void putn_printf(int* &argp, uint8_t size, bool sign, uint32_t base, int incsize
     argp += incsize * size / sizeof(int);
 }
 
-void printf(const char* fmt, ...){
+void _cdecl printf(const char* fmt, ...){
     int* argp = (int*)&fmt;  // stack is aligned to the int datatype
     int incsize = sizeof(int64_t) / sizeof(fmt);
     argp += incsize;  // points to the second argument
@@ -126,7 +87,7 @@ void printf(const char* fmt, ...){
             fmt++;
             switch (*fmt)
             {
-                case 'l':
+            case 'l':
                 if (*(fmt + 1) == 'l')
                 {
                     size = 8;
@@ -139,7 +100,7 @@ void printf(const char* fmt, ...){
                 fmt++;
                 break;
                 
-                case 'h':
+            case 'h':
                 if (*(fmt + 1) == 'h')
                 {
                     size = 1;
@@ -156,40 +117,33 @@ void printf(const char* fmt, ...){
             switch (*fmt)
             {
             
-                case 'c':
+            case 'c':
                 putc(*argp);
                 argp += incsize;
                 break;
-                
-                case 's':
+            case 's':
                 puts((char*)*argp);
                 argp += incsize;
                 break;
-                
-                case 'd':
-                case 'i':
+            case 'd':
+            case 'i':
                 putn_printf(argp, size, true, 10, incsize);
                 break;
-                
-                case 'u':
+            case 'u':
                 putn_printf(argp, size, false, 10, incsize);
                 break;
-                
-                case 'p':
-                case 'X':
-                case 'x':
+            case 'p':
+            case 'X':
+            case 'x':
                 putn_printf(argp, size, false, 16, incsize);
                 break;
-                
-                case 'o':
+            case 'o':
                 putn_printf(argp, size, false, 8, incsize);
                 break;
-                
-                case '%':
+            case '%':
                 putc('%');
                 break;
-                
-                default:
+            default:
                 break;
         }
         fmt += incsize; // move to the next character in the format string

@@ -1,12 +1,7 @@
-ASM=nasm
-CC=gcc
-CC16=/usr/bin/watcom/binl/wpp
-LD16=/usr/bin/watcom/binl/wlink
-SRC_DIR=src
-TOOLS_DIR=tools
-BUILD_DIR=build
-
+include build_scripts/config.mk
 .PHONY: all floopy_image bootloader kernel clean always
+include build_scripts/toolchain.mk
+
 
 #floopy image
 floopy_image: $(BUILD_DIR)/main_f.img
@@ -17,30 +12,33 @@ $(BUILD_DIR)/main_f.img: clean bootloader kernel
 	e2cp $(BUILD_DIR)/stage2.bin $(BUILD_DIR)/main_f.img:stage2.bin
 	e2cp $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/main_f.img:kernel.bin
 
+
 #bootloader (stage 1 and stage 2)
 bootloader: stage1 stage2
 
 stage1: $(BUILD_DIR)/stage1.bin
 $(BUILD_DIR)/stage1.bin: always
-	$(MAKE) -C $(SRC_DIR)/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR))
+	$(MAKE) -C src/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR))
 
 stage2: $(BUILD_DIR)/stage2.bin
 $(BUILD_DIR)/stage2.bin: always
-	$(MAKE) -C $(SRC_DIR)/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR))
+	$(MAKE) -C src/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR))
 
 
 #kernel
 kernel: $(BUILD_DIR)/kernel.bin
 $(BUILD_DIR)/kernel.bin: always
-	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR))
+	$(MAKE) -C src/kernel BUILD_DIR=$(abspath $(BUILD_DIR))
+
 
 #always
 always:
 	mkdir -p $(BUILD_DIR)
 
+
 #clean
 clean:
-	$(MAKE) -C $(SRC_DIR)/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR)) ASM=$(ASM) clean
-	$(MAKE) -C $(SRC_DIR)/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR)) ASM=$(ASM) clean
-	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR)) ASM=$(ASM) clean
+	$(MAKE) -C src/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR)) ASM=$(ASM) clean
+	$(MAKE) -C src/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR)) ASM=$(ASM) clean
+	$(MAKE) -C src/kernel BUILD_DIR=$(abspath $(BUILD_DIR)) ASM=$(ASM) clean
 	rm -rf $(BUILD_DIR)/*

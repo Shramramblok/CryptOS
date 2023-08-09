@@ -5,8 +5,8 @@ bits 16
 
 %define LOG2_OF_BLOCK_GROUP_DESCRIPTOR_SIZE 5 ; 2^5 = 32 block group descriptors size
 
-%define STAGE2_SEGMENT 0x7e0
-%define STAGE2_OFFSET 0x0000
+%define STAGE2_SEGMENT 0x0
+%define STAGE2_OFFSET 0x500
 
 main:
     ; setup data segments
