@@ -20,7 +20,7 @@ export TARGET_LIBS =
 export BUILD_DIR = $(abspath build)
 
 
-BINUTILS_VRS = 2.37
+BINUTILS_VRS = 2.41
 BINUTILS_URL = https://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS_VRS).tar.xz
 GCC_VRS = 13.2.0
 GCC_URL = https://ftp.gnu.org/gnu/gcc/gcc-$(GCC_VRS)/gcc-$(GCC_VRS).tar.xz

@@ -1,6 +1,131 @@
 bits 16
 
 section _TEXT class=CODE
+
+
+;                o
+;                f
+;                f s
+;                s i
+;                e z
+;                t e
+;                V V
+; --------SS--------
+; BP             0 2 <-- SP
+; IP             2 2
+; dividend       4 8
+; divisor       12 4
+; ptr_quotient  16 2
+; ptr_remainder 18 2
+; ------------------
+%define dividendLower [bp + 4]
+%define dividendUpper [bp + 8]
+%define divisor [bp + 12]
+%define ptr_quotient [bp + 16]
+%define ptr_remainder [bp + 18]
+global _x86_Divide_64_32
+_x86_Divide_64_32:
+    [bits 32]
+    push bp
+    mov bp, sp ; save stack frame
+
+    push bx ; save bx
+
+    mov eax, dividendUpper
+    mov ecx, divisor
+    xor edx, edx
+    div ecx ; eax = edx:eax / ecx, edx = edx:eax % ecx
+
+    mov bx, ptr_quotient
+    mov [bx + 4], eax
+
+    mov eax, dividendLower
+    ; edx have the remainder from the previous division
+    div ecx ; eax = edx:eax / ecx, edx = edx:eax % ecx
+
+    mov [bx], eax
+    mov bx, ptr_remainder
+    mov [bx], edx
+
+    pop bx ; restore bx
+
+    mov sp, bp
+    pop bp ; restore stack frame
+    ret
+
+
+;                o
+;                f
+;                f s
+;                s i
+;                e z
+;                t e
+;                V V
+; --------SS--------
+; BP             0 2 <-- SP
+; IP             2 2
+; port number    4 8
+; value         12 4
+; ------------------
+global _x86_outb
+_x86_outb:
+    [bits 32]
+    mov dx, [bp + 4]
+    mov al, [bp + 8]
+    out dx, al
+    ret
+
+
+;                o
+;                f
+;                f s
+;                s i
+;                e z
+;                t e
+;                V V
+; --------SS--------
+; BP             0 2 <-- SP
+; IP             2 2
+; port number    4 8
+; value         12 4
+; ------------------
+global _x86_inpb
+_x86_inpb:
+    [bits 32]
+    mov dx, [bp + 4]
+    xor eax, eax
+    in al, dx
+    ret
+
+
+; Unsigned 4 byte divide
+; Dividend = DX:AX     
+; Divisor = CX:BX    
+; Quotient = DX:AX      
+; Remainder = CX:BX 
+global __U4D
+__U4D:
+    shl edx, 16
+    mov dx, ax
+    mov eax, edx
+    xor edx, edx ; edx:eax = Dividend
+
+    shl ecx, 16
+    mov cx, bx ; ecx = Divisor
+
+    div ecx
+
+    mov ebx, edx
+    mov ecx, ebx
+    shr ecx, 16 ; cx:bx = Remainder
+
+    mov edx, eax
+    shr edx, 16 ; dx:ax = Quotient
+
+    ret
+
+
+; UNUSED FUNCTIONS IN NEW STAGE2 (PROTECTED):
 ;        o
 ;        f
 ;        f s
@@ -32,54 +157,6 @@ _x86_WriteChar:
     pop bp ; restore stack frame
     ret
 
-;                o
-;                f
-;                f s
-;                s i
-;                e z
-;                t e
-;                V V
-; --------SS--------
-; BP             0 2 <-- SP
-; IP             2 2
-; dividend       4 8
-; divisor       12 4
-; ptr_quotient  16 2
-; ptr_remainder 18 2
-; ------------------
-%define dividendLower [bp + 4]
-%define dividendUpper [bp + 8]
-%define divisor [bp + 12]
-%define ptr_quotient [bp + 16]
-%define ptr_remainder [bp + 18]
-global _x86_Divide_64_32
-_x86_Divide_64_32:
-    push bp
-    mov bp, sp ; save stack frame
-
-    push bx ; save bx
-
-    mov eax, dividendUpper
-    mov ecx, divisor
-    xor edx, edx
-    div ecx ; eax = edx:eax / ecx, edx = edx:eax % ecx
-
-    mov bx, ptr_quotient
-    mov [bx + 4], eax
-
-    mov eax, dividendLower
-    ; edx have the remainder from the previous division
-    div ecx ; eax = edx:eax / ecx, edx = edx:eax % ecx
-
-    mov [bx], eax
-    mov bx, ptr_remainder
-    mov [bx], edx
-
-    pop bx ; restore bx
-
-    mov sp, bp
-    pop bp ; restore stack frame
-    ret
 
 ;          o
 ;          f
@@ -242,30 +319,4 @@ _x86_GetDiskParameters:
 
     mov sp, bp
     pop bp ; restore stack frame
-    ret
-
-; Unsigned 4 byte divide
-; Dividend = DX:AX     
-; Divisor = CX:BX    
-; Quotient = DX:AX      
-; Remainder = CX:BX 
-global __U4D
-__U4D:
-    shl edx, 16
-    mov dx, ax
-    mov eax, edx
-    xor edx, edx ; edx:eax = Dividend
-
-    shl ecx, 16
-    mov cx, bx ; ecx = Divisor
-
-    div ecx
-
-    mov ebx, edx
-    mov ecx, ebx
-    shr ecx, 16 ; cx:bx = Remainder
-
-    mov edx, eax
-    shr edx, 16 ; dx:ax = Quotient
-
     ret

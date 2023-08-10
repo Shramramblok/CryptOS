@@ -14,15 +14,9 @@ export PATH := $(TOOLCHAIN_PREFIX)/bin:$(PATH)
 toolchain_binutils: $(BINUTILS_SRC).tar.xz 
 	cd toolchain && tar -xf binutils-$(BINUTILS_VRS).tar.xz
 	mkdir $(BINUTILS_BUILDDIR)
-	cd $(BINUTILS_BUILDDIR) &&  ../binutils-$(BINUTILS_VRS)/configure 
-		--prefix="$(TOOLCHAIN_PREFIX)"
-		--prefix=$(TARGET)
-		--with-sysroot
-		--disable-nls
-		--disable-werror
-
-	$(MAKE) -j8 -C $(BINUTILS_BUILDDIR)  # check if C is the driver or just a flag
-	$(MAKE) -C $(BINUTILS_BUILDDIR) install  # check if C is the driver or just a flag
+	cd $(BINUTILS_BUILDDIR) &&  ../binutils-$(BINUTILS_VRS)/configure --prefix="$(TOOLCHAIN_PREFIX)" --target=$(TARGET) --with-sysroot --disable-nls --disable-werror
+	$(MAKE) -j8 -d -C $(BINUTILS_BUILDDIR)
+	$(MAKE) -C $(BINUTILS_BUILDDIR) install
 
 $(BINUTILS_SRC).tar.xz:
 	mkdir -p toolchain
@@ -33,15 +27,9 @@ $(BINUTILS_SRC).tar.xz:
 toolchain_gcc: toolchain_binutils $(GCC_SRC).tar.xz
 	cd toolchain && tar -xf gcc-$(GCC_VRS).tar.xz
 	mkdir $(GCC_BUILDDIR)
-	cd $(GCC_BUILDDIR) &&  ../gcc-$(GCC_VRS)/configure 
-		--prefix="$(TOOLCHAIN_PREFIX)"
-		--prefix=$(TARGET)
-		--disable-nls
-		--enable-languages=c,c++
-		--without-headers
-
-	$(MAKE) -j8 -C $(GCC_BUILDDIR) all-gcc all-target-libgcc  # check if C is the driver or just a flag
-	$(MAKE) -C $(GCC_BUILDDIR) install-gcc install-target-libgcc  # check if C is the driver or j
+	cd $(GCC_BUILDDIR) &&  ../gcc-$(GCC_VRS)/configure --prefix="$(TOOLCHAIN_PREFIX)" --prefix=$(TARGET) --disable-nls --enable-languages=c,c++ --without-headers
+	$(MAKE) -j8 -C $(GCC_BUILDDIR) all-gcc all-target-libgcc
+	$(MAKE) -C $(GCC_BUILDDIR) install-gcc install-target-libgcc
 
 $(GCC_SRC).tar.xz:
 	mkdir -p toolchain  # if binutils could not create this directory correctly

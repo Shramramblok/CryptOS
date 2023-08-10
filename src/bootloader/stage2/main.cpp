@@ -5,6 +5,7 @@
 
 void cppstart(uint16_t bootDriveNumber)
 {
+    clrscrn();  // clear the screen, also helps to see if printf and following commands work properly
     printf("Hello from Crypt%c%c using a %d%% working %s\r\n", 'O', 'S', 100, "printf!");
     
     Disk disk(bootDriveNumber);

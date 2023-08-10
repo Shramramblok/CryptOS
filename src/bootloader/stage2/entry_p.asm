@@ -14,7 +14,7 @@ entry:
     mov [g_BootDrive], dl ; save boot drive number (will be lost in the transition)
     mov ax, ds
     mov ss, ax
-    mov sp, 0
+    mov sp, 0xFFF0
     mov bp, sp
     
 ; Real mode -> Protected mode, steps are mentioned by the order of the intel manual chapter 9.9.1
@@ -181,5 +181,3 @@ PRDATA_SEG equ data_protected - GDT_begin ; pointer for 32-bit DATA_SEG in GDT
 prot_msg: db "Successful switch to protected mode :)!", 0
 real_msg: db "Successful switch back to real mode :)!", 0
 g_BootDrive: db 0
-times 510-($-$$) db 0 ; padding the boot sector file to be one full sector
-dw 0xaa55 ; boot sector signature

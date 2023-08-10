@@ -5,16 +5,43 @@
 
 const unsigned SCREEN_WIDTH = 80;  // standard width
 const unsigned SCREEN_HEIGHT = 25;  // standard height
+const uint8_t DEFAULT_COLOR = 0x7;  // default color to print chars to screen
 uint8_t* g_ScreenBuffer = (uint8_t*)0xB8000;  // protected mode - no BIOS ints
 int g_ScreenX = 0, g_ScreenY = 0;
 
+
 void putchr(int x, int y, char c){
-    g_ScreenBuffer[2 * (y * SCREEN_WIDTH + x)];  // every second byte is printed -> *2
+    g_ScreenBuffer[2 * (y * SCREEN_WIDTH + x)] = c;  // every second byte is printed -> *2
 }
 
+
 void putclr(int x, int y, uint8_t color){
-    g_ScreenBuffer[2 * (g_ScreenY * SCREEN_WIDTH + g_ScreenX) + 1];  // every second byte is printed -> *2
+    g_ScreenBuffer[2 * (g_ScreenY * SCREEN_WIDTH + g_ScreenX) + 1] = color;  // every second byte is printed -> *2
 }
+
+
+void clrscr(){
+    for (int y = 0; y < SCREEN_HEIGHT; y++){
+        for (int x = 0; x < SCREEN_WIDTH; x++){
+            putchr(x, y, '\0');
+            putclr(x, y, DEFAULT_COLOR);
+        }
+    }
+    
+    g_ScreenX = 0 ; g_ScreenY = 0;
+    setcursor(g_ScreenX, g_ScreenY);
+}
+
+
+void setcursor(int x, int y){
+    int pos = y * SCREEN_WIDTH + x;  // position on screen to set cursor to
+
+    x86_outb(0x3D4, 0x0F);  // write into VGA command register, lower byte
+    x86_outb(0x3D4, (uint8_t)(pos & 0xFF));  // write into VGA command register, higher byte
+    x86_outb(0x3D5, 0x0E);  // write into VGA port data register, lower byte
+    x86_outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));  // write into VGA port data register, higher byte
+}
+
 
 void putc(char c){
     switch (c){
@@ -35,8 +62,11 @@ void putc(char c){
 
         default:
             putchr(g_ScreenX, g_ScreenY, c);
+            putclr(g_ScreenX, g_ScreenY, DEFAULT_COLOR);
             g_ScreenX++; 
             break;
+
+    setcursor(g_ScreenX, g_ScreenY);
     }
     
     if (g_ScreenX >= SCREEN_WIDTH){
@@ -44,6 +74,7 @@ void putc(char c){
         g_ScreenX = 0;
     }
 }
+
 
 void puts(const char* str)
 {
@@ -53,7 +84,9 @@ void puts(const char* str)
     }
 }
 
+
 char* hexDigits = "0123456789ABCDEF";
+
 
 void putu(uint64_t value, uint32_t base)
 {
@@ -74,6 +107,7 @@ void putu(uint64_t value, uint32_t base)
     }
 }
 
+
 void puti(int64_t value, uint32_t base)
 {
     if (value < 0)
@@ -83,6 +117,7 @@ void puti(int64_t value, uint32_t base)
     }
     putu(value, base);
 }
+
 
 void putn_printf(int* &argp, uint8_t size, bool sign, uint32_t base, int incsize)
 {
@@ -113,6 +148,7 @@ void putn_printf(int* &argp, uint8_t size, bool sign, uint32_t base, int incsize
 
     argp += incsize * size / sizeof(int);
 }
+
 
 void printf(const char* fmt, ...){
     int* argp = (int*)&fmt;  // stack is aligned to the int datatype
