@@ -19,6 +19,7 @@ toolchain_binutils: $(BINUTILS_SRC).tar.xz
 	$(MAKE) -C $(BINUTILS_BUILDDIR) install
 
 $(BINUTILS_SRC).tar.xz:
+	rm -rf toolchain
 	mkdir -p toolchain
 	cd toolchain && wget $(BINUTILS_URL)
 
@@ -37,10 +38,8 @@ $(GCC_SRC).tar.xz:
 
 
 # clean:
-clean-tccontent:  # content of toolchain (files)
+clean_toolchain:  # content of toolchain (files) and directory itself
 	rm -rf toolchain/*
+	rmdir toolchain
 
-clean-tcdirs:  # toolchain subdirectories that are used in the Makefile
-	rm -rf $(BINUTILS_SRC) $(BINUTILS_BUILDDIR) $(GCC_SRC) $(GCC_BUILDDIR)
-
-.PHONY: toolchain toolchain_binutils toolchain_gcc clean-tcdirs clean-tccontent
+.PHONY: toolchain toolchain_binutils toolchain_gcc clean_toolchain
