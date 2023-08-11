@@ -6,8 +6,15 @@ extern __bss_start ; bss section symbol
 extern __end ; end of sections symbol
 
 extern cppstart
-global entry
 
+; constants for enabling A20 gate:
+KBDCntrlDataPort equ 0x60
+KBDCntrlCommandPort equ 0x64
+KBDCntrlDisableKBD equ 0xAD
+KBDCntrlEnableKBD equ 0xAE
+KBDCntrlReadCntrlOutPort equ 0xD0
+KBDCntrlWriteCntrlOutPort equ 0xD1
+global entry
 entry:
     cli
 
@@ -33,14 +40,14 @@ entry:
     mov cr0, eax
 
     ; far jump into the 32-bit code segment to perform the switch (step 4)
-    jmp dword PRCODE_SEG:.protected_begin
-protected_begin:
+    jmp dword CODE32_SEG:.protected_begin
+.protected_begin:
     [bits 32]
     
     ; Paging is not enabled (step 6) ,LDT is not used (step 7), Tasking is not used (step 8)
     
     ; setup segment register by the GDT (step 9), note: ES, FS, GS will stay 0 from entry label
-    mov ax, PRDATA_SEG ; 32-bit DATA_SEG is the third in the GDT - offset 16
+    mov ax, DATA32_SEG ; 32-bit DATA_SEG
     mov ds, ax
     mov ss, ax
     
@@ -137,7 +144,7 @@ GDT_begin: ; minimal descriptors, each is 8 bytes
         dd 0 ; 00000000 X 4 times
         dd 0 ; 00000000 X 4 times
 
-    code_protected: ; 32-bit code segment (used when passing from real to protected)
+    code_32: ; 32-bit code segment (used when passing from 16bit(real) to 32bit(protected))
         dw 0xffff
         dw 0
         db 0
@@ -145,7 +152,7 @@ GDT_begin: ; minimal descriptors, each is 8 bytes
         db 11001111b
         db 0
 
-    data_protected: ; 32-bit data segment (used when passing from real to protected)
+    data_32: ; 32-bit data segment (used when passing from 16bit(real) to 32bit(protected))
         dw 0xffff
         dw 0
         db 0
@@ -153,7 +160,7 @@ GDT_begin: ; minimal descriptors, each is 8 bytes
         db 11001111b
         db 0
 
-    code_real: ; 16-bit code segment (used when passing from protected to real)
+    code_16: ; 16-bit code segment (used when passing from 32bit to 16bit, still protected)
         dw 0xffff
         dw 0
         db 0
@@ -161,7 +168,7 @@ GDT_begin: ; minimal descriptors, each is 8 bytes
         db 00001111b
         db 0
 
-    data_real: ; 16-bit data segment (used when passing from protected to real)
+    data_16: ; 16-bit data segment (used when passing from 32bit to 16bit, still protected)
         dw 0xffff
         dw 0
         db 0
@@ -173,10 +180,10 @@ GDT_end:  ; the GDT ends here, not really important
         dw GDT_descriptor - GDT_begin - 1 ; size of GDT (limit)
         dd GDT_begin ; start of GDT (address)
     
-RLCODE_SEG equ code_real - GDT_begin ; pointer for 16-bit CODE_SEG in GDT
-RLDATA_SEG equ data_real - GDT_begin ; pointer for 16-bit DATA_SEG in GDT    
-PRCODE_SEG equ code_protected - GDT_begin ; pointer for 32-bit CODE_SEG in GDT
-PRDATA_SEG equ data_protected - GDT_begin ; pointer for 32-bit DATA_SEG in GDT
+CODE16_SEG equ code_16 - GDT_begin ; pointer for 16-bit CODE_SEG in GDT (protected)
+DATA16_SEG equ data_16 - GDT_begin ; pointer for 16-bit DATA_SEG in GDT (protected)   
+CODE32_SEG equ code_32 - GDT_begin ; pointer for 32-bit CODE_SEG in GDT (protected)
+DATA32_SEG equ data_32 - GDT_begin ; pointer for 32-bit DATA_SEG in GDT (protected)
 
 prot_msg: db "Successful switch to protected mode :)!", 0
 real_msg: db "Successful switch back to real mode :)!", 0

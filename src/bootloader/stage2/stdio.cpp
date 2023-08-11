@@ -6,6 +6,7 @@
 const unsigned SCREEN_WIDTH = 80;  // standard width
 const unsigned SCREEN_HEIGHT = 25;  // standard height
 const uint8_t DEFAULT_COLOR = 0x7;  // default color to print chars to screen
+const int SCROLLB_AMNT = 1;  // default amount to scroll back when going over SCREEM_HEIGHT
 uint8_t* g_ScreenBuffer = (uint8_t*)0xB8000;  // protected mode - no BIOS ints
 int g_ScreenX = 0, g_ScreenY = 0;
 
@@ -17,6 +18,16 @@ void putchr(int x, int y, char c){
 
 void putclr(int x, int y, uint8_t color){
     g_ScreenBuffer[2 * (g_ScreenY * SCREEN_WIDTH + g_ScreenX) + 1] = color;  // every second byte is printed -> *2
+}
+
+
+char getchr(int x, int y){
+    return g_ScreenBuffer[2 * (y * SCREEN_WIDTH + x)];  // every second byte is printed -> *2
+}
+
+
+uint8_t getclr(int x, int y){
+    return g_ScreenBuffer[2 * (g_ScreenY * SCREEN_WIDTH + g_ScreenX) + 1];  // every second byte is printed -> *2
 }
 
 
@@ -36,10 +47,29 @@ void clrscr(){
 void setcursor(int x, int y){
     int pos = y * SCREEN_WIDTH + x;  // position on screen to set cursor to
 
-    x86_outb(0x3D4, 0x0F);  // write into VGA command register, lower byte
-    x86_outb(0x3D4, (uint8_t)(pos & 0xFF));  // write into VGA command register, higher byte
-    x86_outb(0x3D5, 0x0E);  // write into VGA port data register, lower byte
+    x86_outb(0x3D4, 0x0F);  // read from VGA command register, lower byte
+    x86_outb(0x3D5, (uint8_t)(pos & 0xFF));  // write into VGA data register, lower byte
+    x86_outb(0x3D4, 0x0E);  // read from VGA port command register, higher byte
     x86_outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));  // write into VGA port data register, higher byte
+}
+
+
+void scrollback(int movebackN){  // move all of the lines back movebackN lines
+    for (int l = movebackN; l < SCREEN_HEIGHT; l++){
+        for (int x = 0; x < SCREEN_WIDTH; x++){
+            putchr(x, l - movebackN, getchr(x, l));  // for lines to move back a certain amount the first line needs to be 0 + movebackN
+            putclr(x, l - movebackN, getclr(x, l));
+        }
+    }
+
+    for (int l = SCREEN_HEIGHT - movebackN; l < SCREEN_HEIGHT; l++){
+        for (int x = 0; x < SCREEN_WIDTH; x++){
+            putchr(x, l - movebackN, '\0');
+            putclr(x, l - movebackN, DEFAULT_COLOR);
+        }
+    }
+
+    g_ScreenY -= movebackN;
 }
 
 
@@ -66,6 +96,10 @@ void putc(char c){
             g_ScreenX++; 
             break;
 
+    if (g_ScreenY >= SCREEN_HEIGHT){
+        scrollback(SCROLLB_AMNT);  // if text passes the screen size scroll everything back
+        // clrscr();
+    }
     setcursor(g_ScreenX, g_ScreenY);
     }
     
@@ -96,7 +130,7 @@ void putu(uint64_t value, uint32_t base)
     char* p = buffer;
     do
     {
-        x86_Divide_64_32(value, base, &quotient, &remainder);
+        x86_Divide_64_32_Prot(value, base, &quotient, &remainder);
         value = quotient;
         *p++ = hexDigits[remainder];
     } while (value);

@@ -1,13 +1,27 @@
 #include <stdint.h>
 #include "stdio.h"
 #include "main.hpp"
+#include "x86.hpp"
 #include "disk.hpp"
+
+
+void PutStrReal(const char* s){
+    while (*s){
+        x86_RealModePutC(*s);  // put character
+    }
+}
+
 
 void cppstart(uint16_t bootDriveNumber)
 {
     clrscrn();  // clear the screen, also helps to see if printf and following commands work properly
-    printf("Hello from Crypt%c%c using a %d%% working %s\r\n", 'O', 'S', 100, "printf!");
     
+    int line_amnt = 1;  // should be above 25 to also test scrollback()
+    for (int i = 0; i < line_amnt; i++){
+        printf("Hello from Crypt%c%c using a %d%% working %s line %d\r\n", 'O', 'S', 100, "printf!", i);
+    }    
+
+    PutStrReal("CryptOS from RealMode!!!\r\n");
     Disk disk(bootDriveNumber);
 
     printf("Disk %hu parameters: %hu cylinders, %hhu heads, %hhu sectors\r\n", bootDriveNumber, disk.getCylinders(), disk.getHeads(), disk.getSectors());
