@@ -43,7 +43,6 @@ void clrscr(){
     setcursor(g_ScreenX, g_ScreenY);
 }
 
-
 void setcursor(int x, int y){
     int pos = y * SCREEN_WIDTH + x;  // position on screen to set cursor to
 
@@ -52,7 +51,6 @@ void setcursor(int x, int y){
     x86_outb(0x3D4, 0x0E);  // read from VGA port command register, higher byte
     x86_outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));  // write into VGA port data register, higher byte
 }
-
 
 void scrollback(int movebackN){  // move all of the lines back movebackN lines
     for (int l = movebackN; l < SCREEN_HEIGHT; l++){
@@ -118,9 +116,7 @@ void puts(const char* str)
     }
 }
 
-
-char* hexDigits = "0123456789ABCDEF";
-
+const char* hexDigits = "0123456789ABCDEF";
 
 void putu(uint64_t value, uint32_t base)
 {
@@ -261,7 +257,8 @@ void printf(const char* fmt, ...){
                 
                 default:
                 break;
-        }
+            }
         fmt += incsize; // move to the next character in the format string
+        }
     }
-}
+} 

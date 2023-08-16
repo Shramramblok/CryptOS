@@ -20,4 +20,4 @@ void puts(const char* str);
 void putu(uint64_t value, uint32_t base);
 void puti(int64_t value, uint32_t base);
 void printf(const char* fmt, ...);
-void clrscrn();
+void clrscr();

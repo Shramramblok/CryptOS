@@ -14,7 +14,7 @@ void PutStrReal(const char* s){
 
 void cppstart(uint16_t bootDriveNumber)
 {
-    clrscrn();  // clear the screen, also helps to see if printf and following commands work properly
+    clrscr();  // clear the screen, also helps to see if printf and following commands work properly
     
     int line_amnt = 1;  // should be above 25 to also test scrollback()
     for (int i = 0; i < line_amnt; i++){

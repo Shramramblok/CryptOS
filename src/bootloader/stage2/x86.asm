@@ -291,7 +291,7 @@ x86_ReadDiskProt:
 
     mov al, count ; number of sectors to read
 
-    LinToSegOfs ptr_buffer es ebx bx ; es:bx = ptr_buffer
+    LinToSegOfs ptr_buffer, es, ebx, bx ; es:bx = ptr_buffer
     ;mov bx, segment_ptr_buffer
     ;mov es, bx ; set es to the segment of the buffer
     ;mov bx, offset_ptr_buffer
