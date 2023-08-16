@@ -1,6 +1,5 @@
 include build_scripts/config.mk
 .PHONY: all floopy_image bootloader kernel clean always
-include build_scripts/toolchain.mk
 
 
 #floopy image

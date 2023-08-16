@@ -1,7 +1,7 @@
-TARGET_ASMFLAGS += -f elf  # += because it already exists in config.mk
-TARGET_CPPFLAGS += -ffreestanding -nostdlib  # not related to any specific OS, no extended libfiles
-TARGET_LIBS += -lgcc
-TARGET_LDFLAGS += -T linker.ld -nostdlib
+ASMFLAGS += -f elf  # += because it already exists in config.mk
+CPPFLAGS += -ffreestanding -nostdlib  # not related to any specific OS, no extended libfiles
+LIBS += -lgcc
+LDFLAGS += -T linker.ld -nostdlib
 
 SOURCES_CPP=$(wildcard *.cpp)  # get all the .cpp source files
 SOURCES_ASM=$(wildcard *.asm)  # get all the .asm source files
@@ -12,13 +12,13 @@ OBJECTS_ASM=$(patsubst %.asm, $(BUILD_DIR)/stage2/asm/%.obj, $(SOURCES_ASM)) # c
 
 stage2: $(BUILD_DIR)/stage2.bin
 $(BUILD_DIR)/stage2.bin: $(OBJECTS_ASM) $(OBJECTS_CPP)  # link all .obj files into stage2.bin 
-	$(TARGET_LD) $(TARGET_LDFLAGS) -Wl,-Map=$(BUILD_DIR)/stage2.map -o $@ $^ $(TARGET_LD)
+	$(LD) $(LDFLAGS) -Wl,-Map=$(BUILD_DIR)/stage2.map -o $@ $^
 
 $(BUILD_DIR)/stage2/cpp/%.obj: %.cpp always
-	$(TARGET_CXX) $(TARGET_CPPFLAGS) -c -o $@ $<  # compile all of the .cpp source files
+	$(CXX) $(CPPFLAGS) -c -o $@ $<  # compile all of the .cpp source files
 
 $(BUILD_DIR)/stage2/asm/%.obj: %.asm always
-	$(TARGET_ASM) $(TARGET_ASMFLAGS) -o $@ $< # assemble all of the .asm source files
+	$(ASM) $(ASMFLAGS) -o $@ $< # assemble all of the .asm source files
 
 always:
 	mkdir -p $(BUILD_DIR)/stage2/cpp

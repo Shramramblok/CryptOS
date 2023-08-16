@@ -1,21 +1,11 @@
 # to run something not related (directly) to the operating system on the host machine:
 export ASM = nasm  # assembler
 export ASMFLAGS = 
-export CPPFLAGS = -std=c++03 -g  # flags for the C++ compiler: c++03 standard for compiling, generate debugging symbols
+export CPPFLAGS = -std=c++03 -g -m32 -fno-pie  # flags for the C++ compiler: c++03 standard for compiling, generate debugging symbols
 export CXX = g++  # C++ compiler
 export LD = g++  # linker, can also use gcc
-export LDFLAGS =
+export LDFLAGS = -m32
 export LIBS = 
-
-# to run something related/on the operating system:
-export TARGET = i686-elf
-export TARGET_ASM = nasm  # assembler
-export TAGET_ASMFLAGS =
-export TARGET_CPPFLAGS = -std=c++03 -g
-export TARGET_CXX = $(TARGET)-$(CXX)  # target compiler for c++
-export TARGET_LD = $(TARGET)-$(CXX)  # target linker, can use gcc if g++ does not work
-export TARGET_LDFLAGS = 
-export TARGET_LIBS = 
 
 export BUILD_DIR = $(abspath build)
 
