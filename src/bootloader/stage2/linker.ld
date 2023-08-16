@@ -1,7 +1,7 @@
 # note: . = current address
 ENTRY(entry)  # specify entry point label (from entry_p.asm)
 OUTPUT_FORMAT("binary")
-stage2_physaddr = 0x00000500;  # segment 0x0000, offset 0x0500
+stage2_physaddr = 0x00007e00;  # segment 0x7e0, offset 0x0000
 
 SECTIONS {
     . = stage2_physaddr;  # starts at this address
