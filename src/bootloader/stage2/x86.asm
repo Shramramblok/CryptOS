@@ -105,7 +105,7 @@ section _TEXT class=CODE
 ; --------SS--------
 ; EBP            0 4 <-- ESP
 ; EIP            4 4
-; character      8 4 <-- (actually 1 byte so the value is in bp + 11)
+; character      8 4 <-- (value is actually one byte but alligned to 4_LITTLE because of 32bit)
 ; ------------------
 global x86_RealModePutC
 x86_RealModePutC:
@@ -114,7 +114,7 @@ x86_RealModePutC:
     mov ebp, esp
 
     x86_EnterReal
-    mov al, [bp + 11]
+    mov al, [bp + 8]
     mov ah, 0xe
     int 10h
     
@@ -139,13 +139,13 @@ x86_RealModePutC:
 ; ---------SS---------
 ; EBP              0 4 <-- ESP
 ; EIP              4 4
-; drive            8 4 <-- (actually one byte so the value is in bp + 11)
+; drive            8 4 <-- (value is actually one byte but alligned to 4_LITTLE because of 32bit)
 ; ptr_cylinders   12 4
 ; ptr_heads       16 4
 ; ptr_sectors     20 4
 ; ptr_driveType   24 4
 ; --------------------
-%define drive [bp + 11]
+%define drive [bp + 8]
 %define ptr_cylinders [bp + 12]
 %define ptr_heads [bp + 16]
 %define ptr_sectors [bp + 20]
@@ -216,9 +216,9 @@ x86_GetDiskParamsProt:
 ; -----SS-----
 ; EBP       0 4 <-- ESP
 ; EIP       4 4
-; drive     8 4 <-- (actually one byte so the value is in bp + 11)
+; drive     8 4 <-- (value is actually one byte but alligned to 4_LITTLE because of 32bit)
 ; ------------
-%define drive [bp + 11]
+%define drive [bp + 8]
 global x86_ResetDiskProt
 x86_ResetDiskProt:
     [bits 32]
@@ -253,19 +253,19 @@ x86_ResetDiskProt:
 ; ---------SS---------
 ; EBP              0 4 <-- ESP
 ; EIP              4 4
-; drive            8 4 <-- (actually one byte so the value is in bp + 11)
-; cylinder        12 4 <-- (actually 2 bytes so the Lower is bp + 14 and Upper is bp + 15)
-; head            16 4 <-- (actually one byte so the value is in bp + 19)
-; sector          20 4 <-- (actually one byte so the value is in bp + 23)
-; count           24 4 <-- (actually one byte so the value is in bp + 27)
+; drive            8 4 <-- (value is actually one byte but alligned to 4_LITTLE because of 32bit)
+; cylinder        12 4 <-- (value is actually two bytes but alligned to 4_LITTLE because of 32bit)
+; head            16 4 <-- (value is actually one byte but alligned to 4_LITTLE because of 32bit)
+; sector          20 4 <-- (value is actually one byte but alligned to 4_LITTLE because of 32bit)
+; count           24 4 <-- (value is actually one byte but alligned to 4_LITTLE because of 32bit)
 ; ptr_buffer      28 4
 ; --------------------
-%define drive [bp + 11]
-%define cylinderLower [bp + 14]
-%define cylinderUpper [bp + 15]
-%define head [bp + 19]
-%define sector [bp + 23]
-%define count [bp + 27]
+%define drive [bp + 8]
+%define cylinderLower [bp + 12]
+%define cylinderUpper [bp + 13]
+%define head [bp + 16]
+%define sector [bp + 20]
+%define count [bp + 24]
 %define ptr_buffer [bp + 28]
 global x86_ReadDiskProt
 x86_ReadDiskProt:
@@ -386,14 +386,14 @@ x86_Divide_64_32_Prot:
 ; --------SS--------
 ; EBP            0 4 <-- ESP
 ; EIP            4 4
-; port number    8 4 <-- (actual port number is 2 bytes so it starts at bp + 10)
-; value         12 4 <-- (actual value is 1 byte so it starts at bp + 15)
+; port number    8 4 <-- value is actually two bytes but alligned to 4_LITTLE because of 32bit
+; value         12 4 <-- value is actually one byte but alligned to 4_LITTLE because of 32bit
 ; ------------------
 global x86_outb
 x86_outb:
     [bits 32]
-    mov dx, [bp + 10]
-    mov al, [bp + 15]
+    mov dx, [bp + 8]
+    mov al, [bp + 12]
     out dx, al
     ret
 
@@ -408,12 +408,12 @@ x86_outb:
 ; --------SS--------
 ; EBP            0 4 <-- ESP
 ; EIP            4 4
-; port number    8 4 <-- (actual value is 2 bytes so it starts from bp + 10)
+; port number    8 4 <-- value is actually two bytes but alligned to 4_LITTLE because of 32bit
 ; ------------------
 global x86_inpb
 x86_inpb:
     [bits 32]
-    mov dx, [bp + 10]
+    mov dx, [bp + 8]
     xor eax, eax
     in al, dx
     ret

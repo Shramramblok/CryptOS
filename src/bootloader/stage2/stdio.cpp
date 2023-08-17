@@ -31,6 +31,16 @@ uint8_t getclr(int x, int y){
 }
 
 
+void setcursor(int x, int y){
+    int pos = y * SCREEN_WIDTH + x;  // position on screen to set cursor to
+
+    x86_outb(0x3D4, 0x0F);  // read from VGA command register, lower byte
+    x86_outb(0x3D5, (uint8_t)(pos & 0xFF));  // write into VGA data register, lower byte
+    x86_outb(0x3D4, 0x0E);  // read from VGA port command register, higher byte
+    x86_outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));  // write into VGA port data register, higher byte
+}
+
+
 void clrscr(){
     for (int y = 0; y < SCREEN_HEIGHT; y++){
         for (int x = 0; x < SCREEN_WIDTH; x++){
@@ -43,14 +53,6 @@ void clrscr(){
     setcursor(g_ScreenX, g_ScreenY);
 }
 
-void setcursor(int x, int y){
-    int pos = y * SCREEN_WIDTH + x;  // position on screen to set cursor to
-
-    x86_outb(0x3D4, 0x0F);  // read from VGA command register, lower byte
-    x86_outb(0x3D5, (uint8_t)(pos & 0xFF));  // write into VGA data register, lower byte
-    x86_outb(0x3D4, 0x0E);  // read from VGA port command register, higher byte
-    x86_outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));  // write into VGA port data register, higher byte
-}
 
 void scrollback(int movebackN){  // move all of the lines back movebackN lines
     for (int l = movebackN; l < SCREEN_HEIGHT; l++){
