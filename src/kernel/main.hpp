@@ -1,3 +1,3 @@
 #pragma once
 #include <stdint.h>
-extern "C" void cppstart(uint16_t bootDriveNumber);
+extern "C" void  __attribute__((section(".entry"))) cppstart(uint16_t bootDriveNumber);

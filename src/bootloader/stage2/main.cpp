@@ -11,6 +11,8 @@ void PutStrReal(const char* s){
     }
 }
 
+uint8_t* KernelBuffer = (uint8_t*)((void*)0x100000);  // 100000h = kernel base address
+typedef void (*KernelBegin)();  // start of the actual kernel
 
 void cppstart(uint16_t bootDriveNumber)
 {
@@ -35,5 +37,10 @@ void cppstart(uint16_t bootDriveNumber)
     printf("LBA: %lu, CHS: %hu:%hhu:%hhu\r\n", lba, cylinder, head, sector);
 
     // attempt to read kernel into memory:
-    
+    uint32_t KernelLbaAddr = 42069;  // FIGURE THIS OUT, SHOULD BE LBA OF build/kernel.bin
+    disk.read(KernelLbaAddr, KernelBuffer, 0x00010000);
+
+    // attempt to execute the kernel:
+    KernelBegin StartOfKrnl = (KernelBegin)KernelBuffer;
+    StartOfKrnl();
 }
