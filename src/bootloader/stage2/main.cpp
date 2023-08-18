@@ -33,4 +33,7 @@ void cppstart(uint16_t bootDriveNumber)
     
     disk.lba_to_chs(lba, &cylinder, &head, &sector);
     printf("LBA: %lu, CHS: %hu:%hhu:%hhu\r\n", lba, cylinder, head, sector);
+
+    // attempt to read kernel into memory:
+    
 }
