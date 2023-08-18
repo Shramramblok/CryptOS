@@ -21,3 +21,4 @@ void putu(uint64_t value, uint32_t base);
 void puti(int64_t value, uint32_t base);
 void printf(const char* fmt, ...);
 void clrscr();
+void setcursor(int x, int y);
